@@ -4,6 +4,7 @@ import socket
 from aiohttp import web
 
 rooms = {}
+public_path = os.path.join(os.path.dirname(__file__), 'public')
 
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -15,6 +16,12 @@ def get_local_ip():
     finally:
         s.close()
     return ip
+
+async def handle_index(request):
+    return web.FileResponse(os.path.join(public_path, 'index.html'))
+
+async def handle_controller(request):
+    return web.FileResponse(os.path.join(public_path, 'controller.html'))
 
 async def handle_info(request):
     return web.json_response({'ip': get_local_ip(), 'port': 8000})
@@ -110,10 +117,11 @@ async def ws_handler(request):
     return ws
 
 app = web.Application()
+app.router.add_get('/', handle_index)
+app.router.add_get('/controller', handle_controller)
 app.router.add_get('/ws', ws_handler)
 app.router.add_get('/api/info', handle_info)
-public_path = os.path.join(os.path.dirname(__file__), 'public')
-app.router.add_static('/', path=public_path, show_index=True)
+app.router.add_static('/', path=public_path)
 
 if __name__ == '__main__':
     ip = get_local_ip()
