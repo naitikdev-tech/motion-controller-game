@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tilt Runner - Motion Controlled Game</title>
+  <link rel="stylesheet" href="game.css">
+  <script src="qrcode.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <header class="game-header">
+      <div class="logo-box">
+        <h1>TILT RUNNER</h1>
+        <span class="subtext">Motion Controller Arcade</span>
+      </div>
+
+      <div class="header-status">
+        <div class="status-item">
+          <span class="label">ROOM</span>
+          <span id="room-display" class="value room-pill">----</span>
+        </div>
+        <div class="status-item">
+          <span class="label">P1 CONTROLLER</span>
+          <span id="p1-status" class="status-badge waiting">Waiting</span>
+        </div>
+        <div class="status-item">
+          <span class="label">P2 CONTROLLER</span>
+          <span id="p2-status" class="status-badge offline">Offline</span>
+        </div>
+        <div class="status-item">
+          <span class="label">LATENCY</span>
+          <span id="latency-display" class="value">-- ms</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="game-panel">
+        <div class="canvas-wrapper">
+          <canvas id="game-canvas" width="850" height="500"></canvas>
+
+          <div id="start-overlay" class="overlay active">
+            <div class="overlay-card">
+              <h2>CONNECT YOUR PHONE</h2>
+              <p>Scan this QR code with your phone camera or enter the room code.</p>
+              <div id="qrcode-box" class="qr-box"></div>
+              <div class="url-hint">
+                <a id="phone-link" href="#" target="_blank">Loading link...</a>
+              </div>
+              <div class="connection-tip">
+                Ensure phone and laptop are on the same Wi-Fi network.
+              </div>
+            </div>
+          </div>
+
+          <div id="gameover-overlay" class="overlay hidden">
+            <div class="overlay-card">
+              <h2 class="danger-text">CRASHED!</h2>
+              <p class="final-score">Score: <span id="final-score-val">0</span></p>
+              <p class="high-score">Best: <span id="best-score-val">0</span></p>
+              <button id="btn-restart" class="btn-primary">PLAY AGAIN</button>
+              <p class="restart-hint">Or tap Jump / Shake phone to restart</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="hud-panel">
+          <div class="hud-card p1-hud">
+            <div class="hud-player-title">
+              <span class="p1-dot"></span> Player 1
+            </div>
+            <div class="hud-metrics">
+              <div>
+                <span class="hud-lbl">SCORE</span>
+                <span id="p1-score" class="hud-val">0</span>
+              </div>
+              <div>
+                <span class="hud-lbl">TILT X</span>
+                <span id="p1-tilt-x" class="hud-val">0°</span>
+              </div>
+              <div>
+                <span class="hud-lbl">BOOST</span>
+                <div class="gauge"><div id="p1-boost-bar" class="gauge-fill"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hud-card p2-hud">
+            <div class="hud-player-title">
+              <span class="p2-dot"></span> Player 2 (Bonus Multiplayer)
+            </div>
+            <div class="hud-metrics">
+              <div>
+                <span class="hud-lbl">SCORE</span>
+                <span id="p2-score" class="hud-val">0</span>
+              </div>
+              <div>
+                <span class="hud-lbl">TILT X</span>
+                <span id="p2-tilt-x" class="hud-val">--</span>
+              </div>
+              <div>
+                <span class="hud-lbl">BOOST</span>
+                <div class="gauge"><div id="p2-boost-bar" class="gauge-fill"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hud-controls-info">
+            <span class="tag">Phone Controls:</span>
+            <span>Tilt Left/Right to steer</span> &bull;
+            <span>Shake phone or tap Jump to leap over barriers</span> &bull;
+            <span>Hold Boost for turbo</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

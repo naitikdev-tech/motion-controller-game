@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Motion Gamepad</title>
+  <link rel="stylesheet" href="controller.css">
+</head>
+<body>
+  <div class="controller-app">
+    <header class="controller-header">
+      <div class="player-info">
+        <span id="player-badge" class="badge">P?</span>
+        <span class="app-title">MOTION PAD</span>
+      </div>
+      <div class="status-wrap">
+        <span id="ping-badge" class="ping-pill">-- ms</span>
+        <span id="conn-status" class="conn-pill offline">Offline</span>
+      </div>
+    </header>
+
+    <div id="join-card" class="join-card">
+      <label for="room-input">ROOM CODE</label>
+      <div class="join-row">
+        <input type="text" id="room-input" placeholder="e.g. 1234" maxlength="6" inputmode="numeric">
+        <button id="btn-join" class="btn-join">CONNECT</button>
+      </div>
+    </div>
+
+    <div id="permission-card" class="permission-card hidden">
+      <p>Motion sensor access is required to tilt and shake to control the game.</p>
+      <button id="btn-permission" class="btn-permission">ENABLE SENSORS</button>
+    </div>
+
+    <main class="controller-main">
+      <div class="tilt-section">
+        <div class="bubble-gauge">
+          <div class="crosshair-x"></div>
+          <div class="crosshair-y"></div>
+          <div id="tilt-bubble" class="bubble"></div>
+        </div>
+        <div class="tilt-readout">
+          <div><span class="t-lbl">STEER (X):</span> <span id="val-x" class="t-val">0°</span></div>
+          <div><span class="t-lbl">PITCH (Y):</span> <span id="val-y" class="t-val">0°</span></div>
+        </div>
+        <button id="btn-calibrate" class="btn-calibrate">CALIBRATE NEUTRAL</button>
+      </div>
+
+      <div class="shake-indicator-bar">
+        <span class="shake-label">SHAKE TO JUMP</span>
+        <span id="shake-badge" class="shake-status">READY</span>
+      </div>
+
+      <div class="action-buttons-grid">
+        <button id="btn-boost" class="action-btn boost-btn">
+          <span class="btn-icon">&#9889;</span>
+          <span class="btn-text">BOOST</span>
+        </button>
+
+        <button id="btn-jump" class="action-btn jump-btn">
+          <span class="btn-icon">&#8679;</span>
+          <span class="btn-text">JUMP</span>
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <script src="controller.js"></script>
+</body>
+</html>
