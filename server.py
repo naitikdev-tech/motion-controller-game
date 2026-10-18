@@ -56,7 +56,10 @@ async def ws_handler(request):
                         })
                     else:
                         room_data = rooms[current_room]
-                        pids = list(room_data['controllers'].values())
+                        active_ctrls = {w: p for w, p in room_data['controllers'].items() if not w.closed}
+                        room_data['controllers'] = active_ctrls
+
+                        pids = list(active_ctrls.values())
                         player_id = 1 if 1 not in pids else 2
                         room_data['controllers'][ws] = player_id
 

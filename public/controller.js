@@ -12,6 +12,7 @@ const btnBoost = document.getElementById('btn-boost');
 const btnJump = document.getElementById('btn-jump');
 const permissionCard = document.getElementById('permission-card');
 const btnPermission = document.getElementById('btn-permission');
+const tiltSection = document.querySelector('.tilt-section');
 
 let ws = null;
 let currentRoom = null;
@@ -24,13 +25,14 @@ let neutralGamma = 0;
 
 let currentTiltX = 0;
 let currentTiltY = 0;
+let isTouchSteering = false;
 
 let isBoostActive = false;
 let isJumpActive = false;
 let isShakeTriggered = false;
 
 let lastShakeTime = 0;
-let lastAccel = { x: 0, y: 0, z: 0 };
+let lastAccel = { x: 0, y: 0, z: 9.8 };
 
 const urlParams = new URLSearchParams(window.location.search);
 const roomParam = urlParams.get('room');
@@ -60,60 +62,120 @@ btnPermission.addEventListener('click', async () => {
 
 function attachSensors() {
   window.addEventListener('deviceorientation', handleOrientation, true);
+  window.addEventListener('deviceorientationabsolute', handleOrientation, true);
   window.addEventListener('devicemotion', handleMotion, true);
 }
 
 attachSensors();
+window.addEventListener('touchstart', attachSensors, { once: true });
+window.addEventListener('click', attachSensors, { once: true });
 
 function handleOrientation(e) {
-  if (e.beta === null || e.gamma === null) return;
-  rawBeta = e.beta;
-  rawGamma = e.gamma;
+  if (isTouchSteering) return;
+  if (e.gamma !== null && e.beta !== null && typeof e.gamma !== 'undefined') {
+    rawBeta = e.beta;
+    rawGamma = e.gamma;
 
-  let dx = rawGamma - neutralGamma;
-  let dy = rawBeta - neutralBeta;
+    let dx = rawGamma - neutralGamma;
+    let dy = rawBeta - neutralBeta;
 
-  currentTiltX = Math.max(-45, Math.min(45, dx));
-  currentTiltY = Math.max(-45, Math.min(45, dy));
+    currentTiltX = Math.max(-45, Math.min(45, dx));
+    currentTiltY = Math.max(-45, Math.min(45, dy));
 
-  valX.textContent = `${Math.round(currentTiltX)}°`;
-  valY.textContent = `${Math.round(currentTiltY)}°`;
-
-  const bubblePxX = (currentTiltX / 45) * 38;
-  const bubblePxY = (currentTiltY / 45) * 38;
-  tiltBubble.style.transform = `translate(calc(-50% + ${bubblePxX}px), calc(-50% + ${bubblePxY}px))`;
+    updateVisuals(currentTiltX, currentTiltY);
+  }
 }
 
 function handleMotion(e) {
-  const acc = e.acceleration || e.accelerationIncludingGravity;
+  const acc = e.accelerationIncludingGravity || e.acceleration;
   if (!acc) return;
 
-  const dx = Math.abs(acc.x - lastAccel.x);
-  const dy = Math.abs(acc.y - lastAccel.y);
-  const dz = Math.abs(acc.z - lastAccel.z);
-  const delta = dx + dy + dz;
+  const ax = acc.x || 0;
+  const ay = acc.y || 0;
+  const az = acc.z || 0;
 
-  lastAccel = { x: acc.x || 0, y: acc.y || 0, z: acc.z || 0 };
+  if (rawGamma === 0 && !isTouchSteering) {
+    const gravX = -ax;
+    const computedX = (gravX / 9.8) * 45;
+    if (Math.abs(computedX) > 1) {
+      currentTiltX = Math.max(-45, Math.min(45, computedX - neutralGamma));
+      updateVisuals(currentTiltX, currentTiltY);
+    }
+  }
+
+  const mag = Math.sqrt(ax * ax + ay * ay + az * az);
+  const delta = Math.abs(mag - 9.8);
 
   const now = Date.now();
-  if (delta > 24 && (now - lastShakeTime > 450)) {
+  if (delta > 5.2 && (now - lastShakeTime > 400)) {
     lastShakeTime = now;
-    isShakeTriggered = true;
-
-    shakeBadge.textContent = 'JUMP!';
-    shakeBadge.className = 'shake-status shaking';
-    if (navigator.vibrate) navigator.vibrate(60);
-
-    setTimeout(() => {
-      shakeBadge.textContent = 'READY';
-      shakeBadge.className = 'shake-status';
-    }, 350);
+    triggerShakeJump();
   }
+
+  lastAccel = { x: ax, y: ay, z: az };
 }
+
+function triggerShakeJump() {
+  isShakeTriggered = true;
+  shakeBadge.textContent = 'JUMP!';
+  shakeBadge.className = 'shake-status shaking';
+  if (navigator.vibrate) navigator.vibrate(60);
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'input',
+      tiltX: currentTiltX,
+      tiltY: currentTiltY,
+      boost: isBoostActive,
+      jump: true,
+      shake: true,
+      pingTime: Date.now()
+    }));
+  }
+
+  setTimeout(() => {
+    shakeBadge.textContent = 'READY';
+    shakeBadge.className = 'shake-status';
+  }, 350);
+}
+
+function updateVisuals(x, y) {
+  valX.textContent = `${Math.round(x)}°`;
+  valY.textContent = `${Math.round(y)}°`;
+
+  const bubblePxX = (x / 45) * 38;
+  const bubblePxY = (y / 45) * 38;
+  tiltBubble.style.transform = `translate(calc(-50% + ${bubblePxX}px), calc(-50% + ${bubblePxY}px))`;
+}
+
+function handleTouchSteer(e) {
+  if (!e.touches || e.touches.length === 0) return;
+  isTouchSteering = true;
+  const touch = e.touches[0];
+  const rect = tiltSection.getBoundingClientRect();
+  const relX = (touch.clientX - rect.left) / rect.width - 0.5;
+  const relY = (touch.clientY - rect.top) / rect.height - 0.5;
+
+  currentTiltX = Math.max(-45, Math.min(45, relX * 90));
+  currentTiltY = Math.max(-45, Math.min(45, relY * 90));
+  updateVisuals(currentTiltX, currentTiltY);
+}
+
+tiltSection.addEventListener('touchstart', handleTouchSteer, { passive: false });
+tiltSection.addEventListener('touchmove', handleTouchSteer, { passive: false });
+tiltSection.addEventListener('touchend', () => {
+  isTouchSteering = false;
+  currentTiltX = 0;
+  currentTiltY = 0;
+  updateVisuals(0, 0);
+});
 
 btnCalibrate.addEventListener('click', () => {
   neutralBeta = rawBeta;
   neutralGamma = rawGamma;
+  currentTiltX = 0;
+  currentTiltY = 0;
+  updateVisuals(0, 0);
   if (navigator.vibrate) navigator.vibrate(30);
 });
 
@@ -130,6 +192,18 @@ btnJump.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   isJumpActive = true;
   if (navigator.vibrate) navigator.vibrate(40);
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'input',
+      tiltX: currentTiltX,
+      tiltY: currentTiltY,
+      boost: isBoostActive,
+      jump: true,
+      shake: false,
+      pingTime: Date.now()
+    }));
+  }
 });
 btnJump.addEventListener('pointerup', () => {
   isJumpActive = false;

@@ -38,7 +38,7 @@ let players = {
   1: {
     id: 1,
     connected: false,
-    x: 350,
+    x: 407,
     y: 400,
     width: 36,
     height: 54,
@@ -132,6 +132,7 @@ function connectWebSocket() {
         if (pid === 1) {
           p1Status.textContent = 'Connected';
           p1Status.className = 'status-badge connected';
+          players[1].x = players[2].connected ? 350 : 407;
           if (gameState === 'waiting') {
             startOverlay.classList.remove('active');
             startOverlay.classList.add('hidden');
@@ -140,6 +141,13 @@ function connectWebSocket() {
         } else if (pid === 2) {
           p2Status.textContent = 'Connected';
           p2Status.className = 'status-badge connected';
+          players[1].x = 350;
+          players[2].x = 500;
+          if (gameState === 'waiting') {
+            startOverlay.classList.remove('active');
+            startOverlay.classList.add('hidden');
+            gameState = 'playing';
+          }
         }
       }
     } else if (data.type === 'player_left') {
@@ -149,16 +157,22 @@ function connectWebSocket() {
         if (pid === 1) {
           p1Status.textContent = 'Waiting';
           p1Status.className = 'status-badge waiting';
+          if (players[2].connected) {
+            players[2].x = 407;
+          }
         } else if (pid === 2) {
           p2Status.textContent = 'Offline';
           p2Status.className = 'status-badge offline';
+          if (players[1].connected) {
+            players[1].x = 407;
+          }
         }
       }
     } else if (data.type === 'input') {
       const p = players[data.playerId];
       if (p) {
-        p.tiltX = data.tiltX || 0;
-        p.tiltY = data.tiltY || 0;
+        p.tiltX = Number(data.tiltX) || 0;
+        p.tiltY = Number(data.tiltY) || 0;
         p.boost = !!data.boost;
 
         if ((data.jump || data.shake) && p.jumpZ === 0 && p.alive) {
@@ -251,7 +265,7 @@ function resetGame() {
     p.boostGauge = 100;
     p.jumpZ = 0;
     p.jumpVelocity = 0;
-    p.x = pid === '1' ? 350 : 500;
+    p.x = (players[1].connected && players[2].connected) ? (pid === '1' ? 350 : 500) : 407;
     p.y = 400;
   }
 
@@ -305,9 +319,11 @@ function update(dt) {
     lastStarTime = now;
   }
 
+  const anyConnected = players[1].connected || players[2].connected;
+
   for (let pid in players) {
     const p = players[pid];
-    if (!p.connected && pid === '2') continue;
+    if (anyConnected && !p.connected) continue;
     if (!p.alive) continue;
 
     p.score += Math.floor(gameSpeed * 0.2);
@@ -319,7 +335,7 @@ function update(dt) {
       p.boostGauge = Math.min(100, p.boostGauge + 0.2);
     }
 
-    const steerForce = (p.tiltX / 30) * 7.5 * speedMod;
+    const steerForce = (p.tiltX / 30) * 8.5 * speedMod;
     p.x += steerForce;
     p.x = Math.max(170, Math.min(680 - p.width, p.x));
 
@@ -420,7 +436,10 @@ function update(dt) {
 
   const p1 = players[1];
   const p2 = players[2];
-  if (!p1.alive && (!p2.connected || !p2.alive)) {
+  const activePlayers = [p1, p2].filter(pl => pl.connected);
+  const allDead = activePlayers.length > 0 && activePlayers.every(pl => !pl.alive);
+
+  if (allDead) {
     gameState = 'gameover';
     const topScore = Math.max(p1.score, p2.score);
     finalScoreVal.textContent = topScore;
@@ -535,9 +554,11 @@ function render() {
     ctx.restore();
   });
 
+  const anyConnected = players[1].connected || players[2].connected;
+
   for (let pid in players) {
     const p = players[pid];
-    if (!p.connected && pid === '2') continue;
+    if (anyConnected && !p.connected) continue;
     if (!p.alive) continue;
 
     ctx.save();
