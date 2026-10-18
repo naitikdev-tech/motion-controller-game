@@ -101,7 +101,12 @@ function initQR(url) {
 fetch('/api/info')
   .then(res => res.json())
   .then(info => {
-    const controllerUrl = `http://${info.ip}:${info.port}/controller.html?room=${roomCode}`;
+    let controllerUrl;
+    if (location.protocol === 'https:' || location.hostname.includes('trycloudflare.com')) {
+      controllerUrl = `${location.protocol}//${location.host}/controller.html?room=${roomCode}`;
+    } else {
+      controllerUrl = `http://${info.ip}:${info.port}/controller.html?room=${roomCode}`;
+    }
     initQR(controllerUrl);
   })
   .catch(() => {
