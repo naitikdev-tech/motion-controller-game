@@ -10,6 +10,8 @@ const btnCalibrate = document.getElementById('btn-calibrate');
 const shakeBadge = document.getElementById('shake-badge');
 const btnBoost = document.getElementById('btn-boost');
 const btnJump = document.getElementById('btn-jump');
+const btnSteerLeft = document.getElementById('btn-steer-left');
+const btnSteerRight = document.getElementById('btn-steer-right');
 const permissionCard = document.getElementById('permission-card');
 const btnPermission = document.getElementById('btn-permission');
 const tiltSection = document.querySelector('.tilt-section');
@@ -25,6 +27,7 @@ let neutralGamma = 0;
 
 let currentTiltX = 0;
 let currentTiltY = 0;
+let isButtonSteering = false;
 let isTouchSteering = false;
 
 let isBoostActive = false;
@@ -71,7 +74,7 @@ window.addEventListener('touchstart', attachSensors, { once: true });
 window.addEventListener('click', attachSensors, { once: true });
 
 function handleOrientation(e) {
-  if (isTouchSteering) return;
+  if (isButtonSteering || isTouchSteering) return;
   if (e.gamma !== null && e.beta !== null && typeof e.gamma !== 'undefined') {
     rawBeta = e.beta;
     rawGamma = e.gamma;
@@ -94,7 +97,7 @@ function handleMotion(e) {
   const ay = acc.y || 0;
   const az = acc.z || 0;
 
-  if (rawGamma === 0 && !isTouchSteering) {
+  if (rawGamma === 0 && !isButtonSteering && !isTouchSteering) {
     const gravX = -ax;
     const computedX = (gravX / 9.8) * 45;
     if (Math.abs(computedX) > 1) {
@@ -107,7 +110,7 @@ function handleMotion(e) {
   const delta = Math.abs(mag - 9.8);
 
   const now = Date.now();
-  if (delta > 5.2 && (now - lastShakeTime > 400)) {
+  if (delta > 5.0 && (now - lastShakeTime > 400)) {
     lastShakeTime = now;
     triggerShakeJump();
   }
@@ -143,13 +146,59 @@ function updateVisuals(x, y) {
   valX.textContent = `${Math.round(x)}°`;
   valY.textContent = `${Math.round(y)}°`;
 
-  const bubblePxX = (x / 45) * 38;
-  const bubblePxY = (y / 45) * 38;
+  const bubblePxX = (x / 45) * 32;
+  const bubblePxY = (y / 45) * 32;
   tiltBubble.style.transform = `translate(calc(-50% + ${bubblePxX}px), calc(-50% + ${bubblePxY}px))`;
 }
 
+btnSteerLeft.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  isButtonSteering = true;
+  currentTiltX = -32;
+  updateVisuals(currentTiltX, currentTiltY);
+  if (navigator.vibrate) navigator.vibrate(15);
+});
+
+btnSteerLeft.addEventListener('pointerup', (e) => {
+  e.preventDefault();
+  isButtonSteering = false;
+  currentTiltX = 0;
+  updateVisuals(0, 0);
+});
+
+btnSteerLeft.addEventListener('pointerleave', (e) => {
+  if (isButtonSteering) {
+    isButtonSteering = false;
+    currentTiltX = 0;
+    updateVisuals(0, 0);
+  }
+});
+
+btnSteerRight.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  isButtonSteering = true;
+  currentTiltX = 32;
+  updateVisuals(currentTiltX, currentTiltY);
+  if (navigator.vibrate) navigator.vibrate(15);
+});
+
+btnSteerRight.addEventListener('pointerup', (e) => {
+  e.preventDefault();
+  isButtonSteering = false;
+  currentTiltX = 0;
+  updateVisuals(0, 0);
+});
+
+btnSteerRight.addEventListener('pointerleave', (e) => {
+  if (isButtonSteering) {
+    isButtonSteering = false;
+    currentTiltX = 0;
+    updateVisuals(0, 0);
+  }
+});
+
 function handleTouchSteer(e) {
-  if (!e.touches || e.touches.length === 0) return;
+  if (isButtonSteering || !e.touches || e.touches.length === 0) return;
   isTouchSteering = true;
   const touch = e.touches[0];
   const rect = tiltSection.getBoundingClientRect();
@@ -164,10 +213,12 @@ function handleTouchSteer(e) {
 tiltSection.addEventListener('touchstart', handleTouchSteer, { passive: false });
 tiltSection.addEventListener('touchmove', handleTouchSteer, { passive: false });
 tiltSection.addEventListener('touchend', () => {
-  isTouchSteering = false;
-  currentTiltX = 0;
-  currentTiltY = 0;
-  updateVisuals(0, 0);
+  if (!isButtonSteering) {
+    isTouchSteering = false;
+    currentTiltX = 0;
+    currentTiltY = 0;
+    updateVisuals(0, 0);
+  }
 });
 
 btnCalibrate.addEventListener('click', () => {
